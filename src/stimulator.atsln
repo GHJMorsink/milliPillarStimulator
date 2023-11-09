@@ -1,6 +1,6 @@
 Microsoft Visual Studio Solution File, Format Version 11.00
 # Atmel Studio Solution File, Format Version 11.00
-Project("{D1100916-62DA-4D80-A9B4-55A1E7CCEEB3}") = "demo", "demo.cproj", "{A89F0AED-E094-4A43-9DE9-4AE23EC95975}"
+Project("{D1100916-62DA-4D80-A9B4-55A1E7CCEEB3}") = "Stimulator", "stimulator.cproj", "{A89F0AED-E094-4A43-9DE9-4AE23EC95975}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -56,16 +56,16 @@ The commands recognized by the stimulator are:
 | `OF`               | Stop emitting pulses on all channels (OFf) |
 | `SS`               | ShowSettings; shows all current parameters |
 | `SV <1..2>,<0..50>,<0..50>` | SetVoltages for 1: channel A/B, 2: channel C/D. The second parameter is for V1, the third for V2 |
-| `ST <1..2>,<0..65536>,..,<0..65536>` | SetTimes for channel A/B or C/D. The second parameter is T0, third T1, and up to sixth for T4 |
-| `SD <1..2>,<0..65536>,<0..65536>,<0..256>` | SetDeltas for channel A/B or C/D. The second parameter is DT, third is DP, and fourth DM |
-| `SC <1..2>,<0..65536>` | Set repeat Count. Set the number of pulses on channel A/B or C/D. |
+| `ST <1..2>,<0..65535>,..,<0..65535>` | SetTimes for channel A/B or C/D. The second parameter is T0, third T1, and up to sixth for T4 |
+| `SD <1..2>,<0..65535>,<0..65535>,<0..255>` | SetDeltas for channel A/B or C/D. The second parameter is DT, third is DP, and fourth DM |
+| `SC <1..2>,<0..65535>` | Set repeat Count. Set the number of pulses on channel A/B or C/D. |
 |  |    | 
  
 Notes:
  - All parameters must be given
  - No spaces allowed around the commas
  - Values are given in decimal positive form
- - `<0..65536>` means a value has to be given between (and included) 0 and 65536
+ - `<0..65535>` means a value has to be given between (and included) 0 and 65535
  - A command can be edited while entered and will be executed when the 'enter'-key is pressed (sending a CR on the line)
  - Empty commands do nothing, illegal or wrongly composed commands are responded on with a short explanation
  

@@ -40,12 +40,12 @@ extern void vSetHex1( unsigned char uHex, unsigned char *acString );
     For debug messages: send first string, followed by hex representation second string with iLen
     No check is done on the serial-output buffer
 ----------------------------------------------------------------------*/
-extern void vDebugHex( const prog_char *szHeader, unsigned char *acData, unsigned int iLen );
+extern void vDebugHex( const char *szHeader, unsigned char *acData, unsigned int iLen );
 
 /*----------------------------------------------------------------------
       For service messages: send first string
 ----------------------------------------------------------------------*/
-extern void vLogInfo( const prog_char *szHeader );
+extern void vLogInfo( const char *szHeader );
 
 
 
