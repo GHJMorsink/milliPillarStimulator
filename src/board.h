@@ -1,9 +1,6 @@
 /*----------------------------------------------------------------------------
 
- Copyright 2011, GHJ Morsink
-
-
- Author: MorsinkG
+ Copyright 2023, GHJ Morsink
 
    Purpose:
 
@@ -11,7 +8,7 @@
    Contains:
 
    Module:
-      Bridge
+      Stimulator
 
 ------------------------------------------------------------------------------
 */

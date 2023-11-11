@@ -1,9 +1,6 @@
 /*----------------------------------------------------------------------------
 
- Copyright 2011, GHJ Morsink
-
-
- Author: MorsinkG
+ Copyright 2023, GHJ Morsink
 
    Purpose:
 
@@ -11,7 +8,7 @@
    Contains:
 
    Module:
-      Bridge
+      Main for the stimulator
 
 ------------------------------------------------------------------------------
 */
@@ -20,8 +17,8 @@
 #include <avr/interrupt.h>
 #include <stdint.h>
 #include "board.h"                    /* system parameters for this board */
-#include "serial.h"                     /* Serial connection */
-#include "terminal.h"
+#include "serial.h"                   /* Serial connection */
+#include "terminal.h"                 /* The command terminal */
 
 /***------------------------- Defines ------------------------------------***/
 
@@ -50,12 +47,13 @@ The cooperative RoundRobin
  --------------------------------------------------*/
 int main(void)
 {
-   vInitBoard();                          /* for getting correct internal clock */
+   vInitBoard();                        /* for getting correct internal clock */
    vTerminalInit();
-   for (;;)
+
+   for (;;)                             /* The cooperative RoundRobin loop */
    {
-      vDoTerminal();                    /* testing facility */
-      vSampleTask1();                   /* first task */
+      vDoTerminal();                    /* terminal functions */
+      vSampleTask1();                   /* waveform generation */
    }
    return 0;
 }

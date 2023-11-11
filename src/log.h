@@ -46,6 +46,7 @@ extern void vDebugHex( const char *szHeader, unsigned char *acData, unsigned int
       For service messages: send first string
 ----------------------------------------------------------------------*/
 extern void vLogInfo( const char *szHeader );
+extern void vLogString( const char *szHeader );
 
 
 

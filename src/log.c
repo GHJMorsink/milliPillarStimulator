@@ -1,9 +1,7 @@
 /*----------------------------------------------------------------------------
 
- Copyright 2013, GHJ Morsink
+ Copyright 2023, GHJ Morsink
 
-
- Author: MorsinkG
 
    Purpose:
       Implements log function
@@ -174,6 +172,25 @@ void vLogInfo( const prog_char *szHeader )
     iTotalLen += 1;
     acTotalString[ iTotalLen ] = '\n';
     iTotalLen += 1;
+    NA_WriteBuffer( acTotalString, iTotalLen );
+}
+
+/*----------------------------------------------------------------------
+    vLogString
+
+      For service messages: send first string
+----------------------------------------------------------------------*/
+void vLogString( const prog_char *szHeader )
+{
+    unsigned int  iTotalLen;
+    unsigned char acTotalString[ MAX_STRING ];
+
+    iTotalLen = strlen_P( szHeader );
+    if ( iTotalLen > (MAX_STRING) )
+    {
+        iTotalLen = MAX_STRING;
+    }
+    memcpy_P( acTotalString, szHeader, iTotalLen );
     NA_WriteBuffer( acTotalString, iTotalLen );
 }
 

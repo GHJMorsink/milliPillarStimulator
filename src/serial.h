@@ -1,9 +1,7 @@
 /*----------------------------------------------------------------------------
 
- Copyright 2011, GHJ Morsink
+ Copyright 2023, GHJ Morsink
 
-
- Author: MorsinkG
 
    Purpose:
       Implements serial function

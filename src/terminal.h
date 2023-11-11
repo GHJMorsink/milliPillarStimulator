@@ -1,9 +1,6 @@
 /*----------------------------------------------------------------------------
 
- Copyright 2011, Fugro Engineers BV, Leidschendam
-
-
- Author: MorsinkG
+ Copyright 2023, GHJ Morsink
 
    Purpose:
       Implements terminal functions
@@ -11,7 +8,7 @@
    Contains:
 
    Module:
-      DOLF
+      Stimulator
 
 ------------------------------------------------------------------------------
 */

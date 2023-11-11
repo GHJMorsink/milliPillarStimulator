@@ -1,9 +1,6 @@
 /*----------------------------------------------------------------------------
 
- Copyright 2011, GHJ Morsink
-
-
- Author: MorsinkG
+ Copyright 2023, GHJ Morsink
 
    Purpose:
       Implements serial function
@@ -24,8 +21,8 @@
 /***------------------------- Defines -----------------------------------***/
 
 /* The serial buffer takes xx bytes + 2 pointers */
-#define SERIAL_RXBUFFERSIZE      128    /* receive buffer size (keep below 256)*/
-#define SERIAL_TXBUFFERSIZE      255    /* transmit buffer size (keep below 256)*/
+#define SERIAL_RXBUFFERSIZE      96     /* receive buffer size (keep below 256)*/
+#define SERIAL_TXBUFFERSIZE      128    /* transmit buffer size (keep below 256)*/
 #define MAIN_CLK                 8      /* System runs at 8 MHz */
 
 /***----------------------- Local Types ---------------------------------***/
