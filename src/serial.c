@@ -1,6 +1,9 @@
 /*----------------------------------------------------------------------------
 
- Copyright 2023, GHJ Morsink
+ Copyright 2011, GHJ Morsink
+
+
+ Author: MorsinkG
 
    Purpose:
       Implements serial function
@@ -23,7 +26,14 @@
 /* The serial buffer takes xx bytes + 2 pointers */
 #define SERIAL_RXBUFFERSIZE      96     /* receive buffer size (keep below 256)*/
 #define SERIAL_TXBUFFERSIZE      128    /* transmit buffer size (keep below 256)*/
-#define MAIN_CLK                 8      /* System runs at 8 MHz */
+
+#if defined(__AVR_ATmega8__)
+#define  AT8    1
+#define MAIN_CLK                 8000000      /* System runs at 8 MHz */
+#else
+#define  AT8    0
+#define MAIN_CLK                 16000000      /* System runs at 16 MHz */
+#endif
 
 /***----------------------- Local Types ---------------------------------***/
 
@@ -39,13 +49,13 @@ static uint8_t    iTxOutPtr;
 
 static uint16_t   const uBaudDetails[7] PROGMEM =
 {
-   (((MAIN_CLK * 1000000 / 2400) / 8) - 1),
-   (((MAIN_CLK * 1000000 / 4800) / 8) - 1),
-   (((MAIN_CLK * 1000000 / 9600) / 8) - 1),
-   (((MAIN_CLK * 1000000 / 19200) / 8) - 1),
-   (((MAIN_CLK * 1000000 / 38400) / 8) - 1),
-   (((MAIN_CLK * 1000000 / 57600) / 8) - 1),
-   (((MAIN_CLK * 1000000 / 115200L) / 8) - 1)
+   (((MAIN_CLK / 2400) / 8) - 1),
+   (((MAIN_CLK / 4800) / 8) - 1),
+   (((MAIN_CLK / 9600) / 8) - 1),
+   (((MAIN_CLK / 19200) / 8) - 1),
+   (((MAIN_CLK / 38400) / 8) - 1),
+   (((MAIN_CLK / 57600) / 8) - 1),
+   (((MAIN_CLK / 115200L) / 8) - 1)
 };
 
 /***------------------------ Global Data --------------------------------***/
@@ -56,6 +66,7 @@ uint8_t uTxOverflow;
 /***------------------------ Local functions ----------------------------***/
 
 /***------------------------ Global functions ---------------------------***/
+#if AT8
 /*--------------------------------------------------
 Baudrate setting
  --------------------------------------------------*/
@@ -67,11 +78,24 @@ void vSetBaud( uint8_t uBaudrate )
    UBRRH = ( (uBaudReg) >> 8) & 0x0f;
    UBRRL =   (uBaudReg)       & 0xff;
 }
+#else
+/*--------------------------------------------------
+Baudrate setting
+ --------------------------------------------------*/
+void vSetBaud( uint8_t uBaudrate )
+{
+   uint16_t uBaudReg;
 
+   uBaudReg = pgm_read_word( &uBaudDetails[ uBaudrate - 1 ] );
+   UBRR0H = ( (uBaudReg) >> 8) & 0x0f;
+   UBRR0L =   (uBaudReg)       & 0xff;
+}
+#endif
 
 /*--------------------------------------------------
  Initialize UART
  --------------------------------------------------*/
+#if AT8
 void vSerialInit( void )
 {
    UCSRA = 2;
@@ -86,7 +110,22 @@ void vSerialInit( void )
    uTxOverflow = 0;
    uRxOverflow = 0;
 }
+#else
+void vSerialInit( void )
+{
+	UCSR0A = 2;
+	UCSR0B = _BV(RXEN0) | _BV(RXCIE0) | _BV(TXEN0);
+	UCSR0C = _BV(UCSZ00) | _BV(UCSZ01);
 
+	iRxInPtr = 0;                        /* purge all buffers */
+	iRxOutPtr = 0;
+	iTxInPtr = 0;
+	iTxOutPtr = 0;
+   vSetBaud( 3 );          /* set a default baudrate (overwritten by the user) */
+	uTxOverflow = 0;
+	uRxOverflow = 0;
+}
+#endif
 /*--------------------------------------------------
  Get characters non-blocking from the receiver
  --------------------------------------------------*/
@@ -119,6 +158,7 @@ uint8_t uSerialGetFree( void )
 
 
 /* Put a character to transmit */
+#if AT8
 /*--------------------------------------------------
 Put a character to transmit; if no room: silently ignore
  --------------------------------------------------*/
@@ -189,4 +229,75 @@ ISR( USART_UDRE_vect )
    }
 }
 
+#else
+/*--------------------------------------------------
+Put a character to transmit; if no room: silently ignore
+ --------------------------------------------------*/
+void vSerialPutChar(uint8_t uTx)
+{
+   uint8_t     uNextPtr;
+
+   uNextPtr = iTxInPtr + 1;
+   if ( uNextPtr >= SERIAL_TXBUFFERSIZE )
+   {
+      uNextPtr = 0;
+   }
+   if ( iTxOutPtr != uNextPtr )         /*  check there is room  */
+   {
+      acTxBuffer[ iTxInPtr ] = uTx;
+      /* Now the next items must be without an tx-out interrupt */
+      cli();
+      iTxInPtr = uNextPtr;
+      UCSR0B = _BV(RXEN0)|_BV(RXCIE0)|_BV(TXEN0)|_BV(UDRIE0); /* interrupt was off: set it on */
+      sei();
+   }
+   else
+   {
+      uTxOverflow += 1;                 /* overflow situation */
+   }
+}
+
+/*--------------------------------------------------
+ Receiving interrupt
+ --------------------------------------------------*/
+ISR(USART_RX_vect)
+{
+   uint8_t uNextPtr;
+
+   uNextPtr = iRxInPtr + 1;
+   if ( uNextPtr >= SERIAL_RXBUFFERSIZE )
+   {
+      uNextPtr = 0;
+   }
+   if ( iRxOutPtr != uNextPtr )         /*  check there is room  */
+   {
+      acRxBuffer[ iRxInPtr ] = UDR0;
+      iRxInPtr = uNextPtr;
+   }
+   else
+   {
+      uRxOverflow += 1;
+   }
+}
+
+/*--------------------------------------------------
+ Transmitting interrupt
+ --------------------------------------------------*/
+ISR( USART_UDRE_vect )
+{
+   if ( iTxInPtr != iTxOutPtr )  /* check if something in buffer */
+   {
+      UDR0 = acTxBuffer[ iTxOutPtr ];
+      iTxOutPtr += 1;
+      if ( iTxOutPtr >= SERIAL_TXBUFFERSIZE )
+      {
+         iTxOutPtr = 0;
+      }
+   }
+   if ( iTxOutPtr == iTxInPtr )        /* if nothing in the buffer (anymore) */
+   {
+      UCSR0B = _BV(RXEN0)|_BV(RXCIE0)|_BV(TXEN0);  /* switch off the interrupt */
+   }
+}
+#endif
 /* EOF */

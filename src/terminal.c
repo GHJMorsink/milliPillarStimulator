@@ -145,24 +145,26 @@ void print_uint16_base10(uint16_t n)
       n /= 10;
    }
    zeroflag = 0;
-   for ( cnt = 4; cnt == 0; cnt--)
+   cnt = 5;
+   while ( cnt > 0 )
    {
+      cnt -=  1;
       if ( (digits[cnt] != 0) || (cnt == 0) )
       {
          zeroflag = 1;                  /* last digit must be shown; all after non-zero digit must be shown */
       }
-      if ( (digits[cnt] != 0) || (zeroflag != 0) )
+      if ( zeroflag != 0 )
       {
          /* Show the digit(s) in the correct sequence */
-         vSerialPutChar( '0' + digits[cnt] );
+         vSerialPutChar( ('0' + digits[cnt]) );
       }
    }
 }
 
 /*--------------------------------------------------
-Write string
+Wait for room in serial output buffer
  --------------------------------------------------*/
-static void vWriteString( char * const szString, unsigned char uLength )
+static void waitPrint(void)
 {
    register unsigned char   uSentCount;
    volatile static uint8_t timeCount;
@@ -174,64 +176,20 @@ static void vWriteString( char * const szString, unsigned char uLength )
          timeCount++;
       }
    }
+}
 
+/*--------------------------------------------------
+Write string
+ --------------------------------------------------*/
+static void vWriteString( char * const szString, unsigned char uLength )
+{
+   register unsigned char   uSentCount;
+
+   waitPrint();                         /* wait for room to print */
    for ( uSentCount = 0; uSentCount < uLength; uSentCount++ )
    {
       vSerialPutChar( (unsigned char) szString[ uSentCount ] );  /* send 1 character */
    }
-}
-
-/*----------------------------------------------------------------------
-    vByteToHex
-    Set string of two hex-characters from a byte
-----------------------------------------------------------------------*/
-static unsigned char cHex( unsigned char cRef )  /* use code */
-{
-   register unsigned char uRet;
-
-   uRet = cRef + '0';
-   if ( uRet > '9' )
-   {
-      uRet += 7;
-   }
-   return uRet;
-}
-
-static void vByteToHex( unsigned char cByte, char *szOutString )
-{
-    register unsigned char  cData;
-
-    cData = cByte >> 4;
-    szOutString[0] = (char) cHex(cData);
-    cData = cByte & 0x0F;
-    szOutString[1] = (char) cHex(cData);
-    szOutString[2] = '\0';
-}
-
-/*--------------------------------------------------
-vSendHByte
- --------------------------------------------------*/
-static void vSendHByte( uint8_t uData )
-{
-    unsigned char  acSendMsg[3];
-
-    vByteToHex( uData, (char *) acSendMsg );         /* convert it into a string */
-    vSerialPutChar( acSendMsg[0] );          /* and send it */
-    vSerialPutChar( acSendMsg[1] );
-}
-
-/*--------------------------------------------------
-vSendLong
-    show 32bit value including 2 spaces
- --------------------------------------------------*/
-static void vSendLong( unsigned long lValue )
-{
-    vSendHByte( (uint8_t) (lValue >> 24) );   /* high byte */
-    vSendHByte( (uint8_t) (lValue >> 16) );   /* med byte */
-    vSendHByte( (uint8_t) (lValue >> 8) );    /* med byte */
-    vSendHByte( (uint8_t) (lValue) );         /* low byte */
-    vSerialPutChar( 0x20 );                  /* space after a word */
-    vSerialPutChar( 0x20 );                  /* space after a word */
 }
 
 /*--------------------------------------------------
@@ -291,69 +249,6 @@ static bool fIsSpace( char cInput )
       default  :
          return false;
    }
-}
-
-/*--------------------------------------------------
-iGetWord
-    Get an uint16_t from the command line
- --------------------------------------------------*/
-static void vGetWord( char *szAddress, unsigned long *iResult, uint8_t *uIndex )
-{
-   *iResult = 0;                   /* start with 0 */
-   while( isxdigit( szAddress[ *uIndex ] ) )
-   {
-      if( isdigit( szAddress[ *uIndex ] ) )
-      {
-            *iResult = (*iResult << 4) + (unsigned long)((int)szAddress[ *uIndex ] - '0');
-      }
-      else
-      {
-            *iResult = (*iResult << 4) + (unsigned long)(((int)szAddress[ *uIndex ] - 'A') + 10);
-      }
-      *uIndex += 1;
-   }
-}
-
-/*--------------------------------------------------
-vShowSettings
-    show a part of the memory starting at address 'start',
-    with length 'size'
- --------------------------------------------------*/
-static void vShowMemory( unsigned long iStart, unsigned int iSize )
-{
-   unsigned int  uLocation;
-   uint8_t       *pByte;
-
-   for ( uLocation = 0; uLocation < iSize; uLocation++ )
-   {
-      if ( (uLocation % 16) == 0 )    /* check we are on a boundary of 16 bytes */
-      {
-         vSendCR();                  /* new line */
-         vSendLong( iStart + uLocation );  /* send value of address */
-      }
-      pByte = (uint8_t *) NULL;
-      pByte += iStart + uLocation;
-      vSendHByte( *pByte );           /* send it */
-      vSerialPutChar( 0x20 );         /* space after byte */
-   }
-   vSendCR();                          /* new line */
-}
-
-/*--------------------------------------------------
-vSetMemory
-    Set a single byte in the memory to a value
- --------------------------------------------------*/
-static void vSetMemory( unsigned long iStart, unsigned char iValue )
-{
-   uint8_t  *pByte;
-
-   pByte = (uint8_t *) NULL;
-   pByte += iStart;
-   *(uint8_t *)pByte = iValue;
-   vWriteString( "Memory set at: ", 15 );
-   vSendLong( iStart );                /* send address */
-   vSendHByte( *pByte );               /* send value */
-   vSendCR();                          /* new line */
 }
 
 /*--------------------------------------------------
@@ -434,10 +329,58 @@ static void f_of( char *argv )
 Commands
   Show settings
  --------------------------------------------------*/
+static void SendCommaSpace(void)
+{
+   vSerialPutChar( ',' );
+   vSerialPutChar( 0x20 );
+}
+
 static void f_ss( char *argv )
 {
+   uint8_t  i, j;
+
    (void) argv;
-   vLogInfo( PSTR( "settings" ));
+   vLogInfo( PSTR( "Settings:" ));
+   for ( i = 0; i < CHANNELCOUNT; i++)
+   {
+      vSendCR();
+      waitPrint();                         /* wait for room to print */
+      vLogString( PSTR( "Settings channel:       " ));
+      print_uint16_base10(i+1);
+      vSendCR();
+      waitPrint();                         /* wait for room to print */
+      vLogString( PSTR( "Voltage V1, V2:         " ));
+      print_uint16_base10(uVoltages[i][0]);
+      SendCommaSpace();
+      print_uint16_base10(uVoltages[i][1]);
+      vSendCR();
+      waitPrint();                         /* wait for room to print */
+      vLogString( PSTR( "Timings T0,T1,T2,T3,T4: " ));
+      for ( j = 0; j < 5; j++)
+      {
+         print_uint16_base10(uTimes[i][j]);
+         if ( j < 4 )
+         {
+            SendCommaSpace();
+         }
+      }
+      vSendCR();
+      waitPrint();                         /* wait for room to print */
+      vLogString( PSTR( "Delta DT, DP, DM:       " ) );
+      for ( j = 0; j < 3; j++)
+      {
+         print_uint16_base10(uDelta[i][j]);
+         if ( j < 2 )
+         {
+            SendCommaSpace();
+         }
+      }
+      vSendCR();
+      waitPrint();                         /* wait for room to print */
+      vLogString( PSTR( "Pulse Counts RPT:       " ));
+      print_uint16_base10(pulseCount[i]);
+      vSendCR();
+   }
 }
 
 /*--------------------------------------------------
@@ -475,7 +418,6 @@ static void f_sv( char *argv )
       vShowParmError(1);
       return;
    }
-   vDebugHex( PSTR( "Volts " ), (unsigned char *) &uVolts[0], 4);
    vSendCR();
    if ( (uVolts[0] > 50) || (uVolts[1] > 50) )
    {
@@ -524,7 +466,7 @@ static void f_st( char *argv )
       }
       uPoint++;
    }
-   vDebugHex( PSTR( "Times " ), (unsigned char *) &uTempTimes[0], 10);
+   // vDebugHex( PSTR( "Times " ), (unsigned char *) &uTempTimes[0], 10);
    vSendCR();
    /* Set the resulting parameters */
    iChannel -= 1;
@@ -569,7 +511,7 @@ static void f_sd( char *argv )
       }
       uPoint++;
    }
-   vDebugHex( PSTR( "Deltas " ), (unsigned char *) &uTempDelta[0], 6);
+   // vDebugHex( PSTR( "Deltas " ), (unsigned char *) &uTempDelta[0], 6);
    vSendCR();
    if ( uTempDelta[2] > 10 )
    {
@@ -590,26 +532,34 @@ Commands
  --------------------------------------------------*/
 static void f_sc( char *argv )
 {
-   (void) argv;
-   vLogInfo( PSTR( "count" ));
-}
-
-
-/*--------------------------------------------------
-Commands
-  Show memory
- --------------------------------------------------*/
-static void f_sm( char *argv )
-{
-   unsigned long   iMemAddress;
-   unsigned long   iSize;
-   uint8_t         uPoint;                     /* pointer into the argument string */
+   uint16_t   iChannel;
+   uint16_t   uTempCount;
+   uint8_t    uPoint;             /* pointer into the argument string */
+   uint8_t    iRc;
 
    uPoint = 0;
-   vGetWord( argv, &iMemAddress, &uPoint ); /* get starting address */
+   iRc = read_uint( argv, &uPoint, &iChannel ); /* get channel to work on */
+   if (! iRc)
+   {
+      vShowParmError(1);
+      return;
+   }
+   if ( (iChannel == 0) || (iChannel > CHANNELCOUNT) )
+   {
+      vShowParmError(0);
+      return;
+   }
    uPoint++;
-   vGetWord( argv, &iSize, &uPoint );        /* get size */
-   vShowMemory( iMemAddress, iSize );           /* show bytes, with address */
+   iRc = read_uint( argv, &uPoint, &uTempCount ); /* get RPT */
+   if (! iRc)
+   {
+      vShowParmError(1);
+      return;
+   }
+   // vDebugHex( PSTR( "Count " ), (unsigned char *) &uTempCount, 2);
+   vSendCR();
+   /* Set the resulting parameters */
+   pulseCount[iChannel - 1] = uTempCount;
 }
 
 /*--------------------------------------------------
