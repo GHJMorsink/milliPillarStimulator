@@ -185,6 +185,12 @@
     <Compile Include="terminal.c">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="timer.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="timer.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="waveform.c">
       <SubType>compile</SubType>
     </Compile>

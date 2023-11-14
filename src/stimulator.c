@@ -16,9 +16,12 @@
 /***------------------------- Includes ----------------------------------***/
 #include <avr/interrupt.h>
 #include <stdint.h>
+#include <avr/eeprom.h>
 #include "board.h"                    /* system parameters for this board */
 #include "serial.h"                   /* Serial connection */
 #include "terminal.h"                 /* The command terminal */
+#include "waveform.h"                 /* The pulse generation */
+#include "timer.h"
 
 /***------------------------- Defines ------------------------------------***/
 
@@ -30,17 +33,9 @@
 /***------------------------- Local Data --------------------------------***/
 
 /***------------------------ Global Data --------------------------------***/
-uint16_t    uTaskCounter;
 
 /***------------------------ Global functions ---------------------------***/
 
-/*--------------------------------------------------
-Sample task
- --------------------------------------------------*/
-void vSampleTask1( void )
-{
-   uTaskCounter += 1;
-}
 
 /*--------------------------------------------------
 The cooperative RoundRobin
@@ -48,12 +43,14 @@ The cooperative RoundRobin
 int main(void)
 {
    vInitBoard();                        /* for getting correct internal clock */
+   vInitTimer(TWO_MS);
    vTerminalInit();
+   vInitWaveform();
 
    for (;;)                             /* The cooperative RoundRobin loop */
    {
       vDoTerminal();                    /* terminal functions */
-      vSampleTask1();                   /* waveform generation */
+      vDoWaveform();                    /* waveform generation */
    }
    return 0;
 }

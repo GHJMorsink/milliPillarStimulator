@@ -28,6 +28,14 @@ extern uint16_t uTimes[CHANNELCOUNT][TIMECOUNT];   /* Timing: start-pause, pos.p
 extern uint16_t uDelta[CHANNELCOUNT][3];           /* Decrease delta (frequency increase) */
 extern uint16_t pulseCount[CHANNELCOUNT];          /* maximum pulses */
 
+#define SETTING_SIZE     ((CHANNELCOUNT) +                \
+                          (CHANNELCOUNT * 2) +            \
+                          (CHANNELCOUNT * TIMECOUNT * 2) +\
+                          (CHANNELCOUNT * 3 * 2) +        \
+                          (CHANNELCOUNT * 2))      /* size in bytes for all settings */
+
+extern uint8_t  NonVolatileSettings[SETTING_SIZE];
+
 /***------------------------ Global functions ---------------------------***/
 /*----------------------------------------------------------------------
     vInitWaveform

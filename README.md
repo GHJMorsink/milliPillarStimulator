@@ -18,16 +18,16 @@ The parameters are as follows:
 
 | Parameter   | Description                                                       |
 |-------------|-------------------------------------------------------------------|
-| T0          | Time (in us) before repeated pulses start after the 'RUn' command |
-| T1          | Time (in us) of the positive going pulse                          |
-| T2          | Time (in us) of  the interphase delay ( 0 means 'no interphase delay') |
-| T3          | Time (in us) of the negative going pulse ( 0 means 'no negative pulse') |
-| T4          | Time (in us) to fill up a complete period (the maximumin case of decreasing periods) |
+| T0          | Time (in ms) before repeated pulses start after the 'RUn' command |
+| T1          | Time (in units of 100us) of the positive going pulse                          |
+| T2          | Time (in units of 100us) of  the interphase delay ( 0 means 'no interphase delay') |
+| T3          | Time (in units of 100us) of the negative going pulse ( 0 means 'no negative pulse') |
+| T4          | Time (in ms) to fill up a complete period (the maximumin case of decreasing periods) |
 |  |    |
 | V1    | Voltage (in units of 0.1Volt / 100 mV) for the positive pulse |
 | V2    | Voltage (in units of 0.1Volt) for the negative pulse |
 |  |    |
-| DT    | Delta time (in us): amount which will decrease the period time every time DP pulses are emitted (0 means there is no frequency increase)  |
+| DT    | Delta time (in ms): amount which will decrease the period time every time DP pulses are emitted (0 means there is no frequency increase)  |
 | DP    | Delta pulses: amount of pulses after which the peeriod timewhich will decrease the period time every time DP pulses are emitted  |
 | DM    | Delta max: the maximum number of dreceasing instances after which the period time is reset to T4 and cycling starts again  |
 |  |    |
@@ -59,6 +59,7 @@ The commands recognized by the stimulator are:
 | `ST <1..2>,<0..65535>,..,<0..65535>` | SetTimes for channel A/B or C/D. The second parameter is T0, third T1, and up to sixth for T4 |
 | `SD <1..2>,<0..65535>,<0..65535>,<0..255>` | SetDeltas for channel A/B or C/D. The second parameter is DT, third is DP, and fourth DM |
 | `SC <1..2>,<0..65535>` | Set repeat Count. Set the number of pulses on channel A/B or C/D. |
+| `WR`               | Write (store) all settings to EEPROM. including the start-flags. On power up these settings are read from EEPROM. |
 |  |    | 
  
 Notes:
@@ -76,6 +77,8 @@ Notes:
 Use a terminal program at the PC side. For Windows there are 'Putty', 'TeraTerm', and many more. 
 Set the serial port to '19200 baud, 8 bits, No parity, 1 stopbit'.
 
+Note for PuTTY:
+ - Take care to set in menu *Change settings... --> Terminal --> Keyboard --> The Backspace key* to *Control-H*.
 
 
   

@@ -17,6 +17,8 @@
 /***------------------------- Includes ----------------------------------***/
 #include <avr/io.h>
 #include <avr/pgmspace.h>
+#include <avr/eeprom.h>
+
 #include <string.h>
 #include <ctype.h>
 
@@ -71,6 +73,7 @@ static void  f_sv( char *argv );
 static void  f_st( char *argv );
 static void  f_sd( char *argv );
 static void  f_sc( char *argv );
+static void  f_wr( char *argv );
 
 /***----------------------- Local Types ---------------------------------***/
 static const struct sAccess
@@ -83,13 +86,14 @@ static const struct sAccess
     { f_ru,     "RU  <1..3> RUn Start pulses" },
     { f_of,     "OF  Set all outputs OFf" },
     { f_ss,     "SS  Show Settings" },
-    { f_sv,     "SV  <1..2>,<0..50>,<0..50> Set Voltage on 1 or 2, positive and negative pulse" },
+    { f_sv,     "SV  <1..2>,<0..50>,<0..50> Set Voltage on 1 or 2, pos. and neg. pulse" },
     { f_st,     "ST  <1..2>,<0..65535>,..,<0..65535> Set Timing on 1 or 2; 5 timing parameters" },
     { f_sd,     "SD  <1..2>,<0..65535>,<0..65535>,<0..255> Set Delta timing on 1 or 2" },
-    { f_sc,     "SC  <1..2>,<0..65535> Set repeat count" }
+    { f_sc,     "SC  <1..2>,<0..65535> Set repeat count" },
+    { f_wr,     "WR  Write/store all settings to eeprom" }
 };
 
-static const int iAccArrSize = ( sizeof( asAccessArr ) / sizeof( struct sAccess ) );
+#define  iAccArrSize (sizeof(asAccessArr) / sizeof(struct sAccess))
 
 
 /***------------------------ Local functions ----------------------------***/
@@ -560,6 +564,24 @@ static void f_sc( char *argv )
    vSendCR();
    /* Set the resulting parameters */
    pulseCount[iChannel - 1] = uTempCount;
+}
+
+/*--------------------------------------------------
+Commands
+  Store to eeprom
+ --------------------------------------------------*/
+static void f_wr( char *argv )
+{
+   uint8_t  size;
+   uint8_t  *ptr = &uStartFlag[0];      /* beginning of settings
+                                          */
+   (void) argv;
+   vLogInfo( PSTR( "Writing to eeprom" ));
+   for ( size = 0; size < SETTING_SIZE; size++ )
+   {
+      eeprom_update_byte( &NonVolatileSettings[size], *ptr );
+      ptr++;
+   }
 }
 
 /*--------------------------------------------------

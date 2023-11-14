@@ -61,11 +61,11 @@ static void vMCP2510WriteRegister ( unsigned char uRegister, unsigned char uData
 }
 
 /*--------------------------------------------------
- Run the MCP initialisation to get Fclk div 1, 16MHz
+ Run the MCP2510 initialisation to get Fclk div 1, 16MHz
  --------------------------------------------------*/
 static void vInitMCP( void )
 {
-   DDRB  = 0x2C;  //0b00101100;                  /* Set the port to correct configuration (PB2=CS, PB3=MOSI, PB4=MISO, PB5=CLK */
+   DDRB  = 0x2E;  //0b00101110;        /* Set the port to correct configuration (pb1=led, PB2=CS, PB3=MOSI, PB4=MISO, PB5=CLK */
    PORTB = 0xFF;  //0b11111111;
 
    SPCR = 0x50;                        /* Enable SPI function in mode 0 (fast interface) */
