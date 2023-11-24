@@ -22,7 +22,7 @@ The parameters are as follows:
 | T1          | Time (in units of 100us) of the positive going pulse                          |
 | T2          | Time (in units of 100us) of  the interphase delay ( 0 means 'no interphase delay') |
 | T3          | Time (in units of 100us) of the negative going pulse ( 0 means 'no negative pulse') |
-| T4          | Time (in ms) to fill up a complete period (the maximumin case of decreasing periods) |
+| T4          | Time (in ms) to fill up a complete period (the maximum in case of decreasing periods) |
 |  |    |
 | V1    | Voltage (in units of 0.1Volt / 100 mV) for the positive pulse |
 | V2    | Voltage (in units of 0.1Volt) for the negative pulse |
@@ -41,7 +41,7 @@ Note: all parameters are zero or positive integer numbers (No negative numbers).
 
 The parameter setting for the stimulator is controlled through the serial port on the Arduino Uno taking use of the onboard USB to serial converter.
 On that interface a terminal is configured within the firmware. The terminal has a prompt showing `TERM> ` which invites the user towards
-enter a command line.
+entering a command line.
 
 The terminal has several commands to make optimal use of the stimulator. The terminal can of course also be controlled by a PC program
 with graphical interface to enhance the user experience. This project does not include such a program.
@@ -59,7 +59,7 @@ The commands recognized by the stimulator are:
 | `ST <1..2>,<0..65535>,..,<0..65535>` | SetTimes for channel A/B or C/D. The second parameter is T0, third T1, and up to sixth for T4 |
 | `SD <1..2>,<0..65535>,<0..65535>,<0..255>` | SetDeltas for channel A/B or C/D. The second parameter is DT, third is DP, and fourth DM |
 | `SC <1..2>,<0..65535>` | Set repeat Count. Set the number of pulses on channel A/B or C/D. |
-| `WR`               | Write (store) all settings to EEPROM. including the start-flags. On power up these settings are read from EEPROM. |
+| `WR`               | Write (store) all settings to EEPROM, including the start-flags. On power up these settings are read from EEPROM. |
 |  |    | 
  
 Notes:
@@ -74,7 +74,7 @@ Notes:
 ### Additional
 -----------
 
-Use a terminal program at the PC side. For Windows there are 'Putty', 'TeraTerm', and many more. 
+Use a terminal program at the PC side. For Windows there are 'PuTTY', 'TeraTerm', and many more. 
 Set the serial port to '19200 baud, 8 bits, No parity, 1 stopbit'.
 
 Note for PuTTY:

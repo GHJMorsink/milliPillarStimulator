@@ -18,6 +18,8 @@
 #include <avr/eeprom.h>
 #include "waveform.h"
 #include "timer.h"
+#include "log.h"
+#include "board.h"
 
 /***------------------------- Defines -----------------------------------***/
 
@@ -29,34 +31,17 @@
 
 /***------------------------- Local Data --------------------------------***/
 /* The data is given as flat types; structures give overhead in the generated code */
-static uint8_t    currentState[CHANNELCOUNT];
-static uint16_t   currentCount[CHANNELCOUNT];
+static uint8_t    currentState[CHANNELCOUNT];  /* FSM state */
+static uint16_t   currentCount[CHANNELCOUNT];  /* count of pulses */
+static uint16_t   currentTime[CHANNELCOUNT];   /* current time reference */
+static uint16_t   currentPeriod[CHANNELCOUNT];   /* current period (T4) reference */
 
 /***------------------------ Global Data --------------------------------***/
 
 //! Keep these in sequence and together, as they are stored in eeprom
-uint8_t  uStartFlag[CHANNELCOUNT] = { 0, 0 };      /* Running flags 0=stopped, 1=starting, 2=pulsing */
-uint8_t  uVoltages[CHANNELCOUNT][2] = {            /* Voltage setting pos/neg (default 2.5V up, 1.0V down) */
-   { 25, 10 },
-   { 25, 10 }
-};
-uint16_t uTimes[CHANNELCOUNT][TIMECOUNT] = {               /* Timing: start-pause, pos.pulse T1, interphase T2, neg.pule T3, period T4 */
-   { 50000, 100, 10, 200, 10000 },
-   { 50000, 100, 10, 200, 12000 }
-};
-uint16_t uDelta[CHANNELCOUNT][3] = {              /* Decrease delta (frequency increase) */
-   { 100, 50000, 4 },
-   { 0, 50000, 4 }
-};
-uint16_t pulseCount[CHANNELCOUNT] = { 0, 0 };      /* maximum pulses */
+sSetting_t   sSetChannel[CHANNELCOUNT];
 
-#define SETTING_SIZE     ((CHANNELCOUNT) +                \
-                          (CHANNELCOUNT * 2) +            \
-                          (CHANNELCOUNT * TIMECOUNT * 2) +\
-                          (CHANNELCOUNT * 3 * 2) +        \
-                          (CHANNELCOUNT * 2))      /* size in bytes for all settings */
-
-uint8_t EEMEM  NonVolatileSettings[SETTING_SIZE];
+uint8_t EEMEM  NonVolatileSettings[SETTING_SIZE];  /* eeprom copy */
 
 /***------------------------ Local functions ----------------------------***/
 
@@ -70,7 +55,7 @@ void vInitWaveform( void )
 {
    uint8_t  cnt;
    uint8_t  size;
-   uint8_t  *ptr = &uStartFlag[0];      /* initialize at beginning of settings */
+   uint8_t  *ptr = &sSetChannel[0].uStartFlag;      /* initialize at beginning of settings */
 
    for ( cnt = 0; cnt < CHANNELCOUNT; cnt++ )
    {
@@ -92,74 +77,88 @@ void vDoWaveform( void )
    uint8_t     i;
    uint16_t    temp;
 
+   vGetSystemTimer(&temp);
    for ( i = 0; i < CHANNELCOUNT; i++)
    {
-      if ( uStartFlag[i] == 0 )
+      if ( (sSetChannel[i].uStartFlag == 0) || (sSetChannel[i].uStartFlag > 3) )  /* if set to 'off': set the FSM to startpoint */
       {
          currentState[i] = 0;
-      }
-   }
-   switch ( currentState[i] )
-   {
-      case 0 :                          /* nothing happening, all in zero position */
          currentCount[i] = 0;
-         if ( uStartFlag[i] != 0 )
-         {
-            currentState[i] = 1;        /* go to pre wait for starting pulsing */
-            vGetSystemTimer(&currentCount[i]);  /* save current timecount */
-         }
-         break;
-      case 1 :                          /* pre pulsing wait time */
-         vGetSystemTimer(&temp);
-         if ( temp > currentCount[i] )  /* time isn't rolled-over */
-         {
-            temp = temp - currentCount[i];
-         } else
-         {
-            temp = temp  + (UINT16_MAX - currentCount[i]);  /* rolled-over! */
-         }
-         if ( temp >= uTimes[i][0])
-         {
-            currentState[i] = 2;        /* going to pulse gen */
-            uStartFlag[i] = 2;          /* indicate it */
-         }
-         break;
-      case 2 :                          /* uninterupted pos.pulse,interphase,and neg.pulse */
-         LED_ON();
-         //LED on
-         /* set output voltage
-            set positive outputs
-            delay T1
-            output off
-            set output voltage
-            delay T2
-            set negative outputs
-            delay T3
-            output off
-          */
-         //LED off
-         pulseCount[i] += 1;
-         vGetSystemTimer(&currentCount[i]);
-         currentState[i] = 3;
-         LED_OFF();
-         break;
-      case 3 :                          /* Waiting for next pulse (in between the terminal can work) */
-         vGetSystemTimer(&temp);
-         if ( temp > currentCount[i] )  /* time isn't rolled-over */
-         {
-            temp = temp - currentCount[i];
-         } else
-         {
-            temp = temp  + (UINT16_MAX - currentCount[i]);  /* rolled-over! */
-         }
-         if ( temp >= uTimes[i][4])     /* check period */
-         {
-            currentState[i] = 2;        /* going to pulse gen */
-         }
-         break;
-      default:                          /* shouldn't occur */
-         currentState[i] = 0;
-         break;
+      }
+
+      switch ( currentState[i] )           /* run for each channel the FSM */
+      {
+         case 0 :                          /* nothing happening, all in zero position */
+            if ( sSetChannel[i].uStartFlag == 1 )
+            {
+               vDebugHex(PSTR("START "),(uint8_t *) &i, 1);
+               currentState[i] = 1;        /* go to pre wait for starting pulsing */
+               currentTime[i] = temp;      /* set current time */
+               currentPeriod[i] = sSetChannel[i].uTimes[4];  /* set period reference */
+            } else
+            {
+               sSetChannel[i].uStartFlag = 0;
+            }
+            break;
+         case 1 :                          /* pre pulsing wait time */
+            if ( temp >= currentTime[i] )  /* time isn't rolled-over */
+            {
+               temp = temp - currentTime[i];
+            } else
+            {
+               temp = temp  + (UINT16_MAX - currentTime[i]);  /* rolled-over! */
+            }
+            if ( temp >= sSetChannel[i].uTimes[0])
+            {
+               sSetChannel[i].uStartFlag = 2;         /* indicate it */
+               vGetSystemTimer(&currentTime[i]);      /* save current timecount */
+               vDebugHex(PSTR("\r\ntime1 "),(uint8_t *) &currentTime[i], 2);
+               currentState[i] = 2;                   /* going to pulse gen */
+            }
+            break;
+         case 2 :                          /* uninterupted pos.pulse,interphase,and neg.pulse */
+            LED_ON();
+            vDebugHex(PSTR("\r\nPulse "),(uint8_t *) &temp, 2);
+            setVoltage(i, sSetChannel[i].uVoltages[0]);  /* set positive output voltage */
+            setHBridge(i, POSITIVE);  /* start the pulse */
+            delay_100us(sSetChannel[i].uTimes[1]);
+            clearHBridge(i);         /* no output */
+            if ( sSetChannel[i].uTimes[2] > 0)
+            {
+               delay_100us(sSetChannel[i].uTimes[2]);
+            }
+            setVoltage(i, sSetChannel[i].uVoltages[1]);  /* set negative output voltage */
+            if ( sSetChannel[i].uTimes[3] > 0)
+            {
+               setHBridge(i, NEGATIVE);  /* start the pulse */
+               delay_100us(sSetChannel[i].uTimes[3]);
+               clearHBridge(i);         /* no output */
+            }
+            vGetSystemTimer(&temp);
+            vDebugHex(PSTR("\r\nNoPulse "),(uint8_t *) &temp, 2);
+            currentState[i] = 3;
+            currentCount[i] += 1;               /* one pulse completed */
+            LED_OFF();
+            break;
+         case 3 :                          /* Waiting for next pulse (in between the terminal can work) */
+            if ( temp >= currentTime[i] )  /* time isn't rolled-over */
+            {
+               temp = temp - currentTime[i];
+            } else
+            {
+               temp = temp  + (UINT16_MAX - currentTime[i]);  /* rolled-over! */
+            }
+            if ( temp >= sSetChannel[i].uTimes[4])     /* check period */
+            {
+               currentState[i] = 2;                   /* going to pulse gen */
+               vGetSystemTimer(&currentTime[i]);      /* save current timecount */
+               vDebugHex(PSTR("\r\ntime3 "),(uint8_t *) &currentTime[i], 2);
+            }
+            break;
+         default:                                     /* shouldn't occur */
+            currentState[i] = 0;
+            break;
+      }
    }
 }
 

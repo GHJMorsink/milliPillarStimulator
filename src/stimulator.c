@@ -44,6 +44,7 @@ int main(void)
 {
    vInitBoard();                        /* for getting correct internal clock */
    vInitTimer(TWO_MS);
+   vSerialInit();
    vTerminalInit();
    vInitWaveform();
 

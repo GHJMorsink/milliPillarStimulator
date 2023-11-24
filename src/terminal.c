@@ -170,15 +170,11 @@ Wait for room in serial output buffer
  --------------------------------------------------*/
 static void waitPrint(void)
 {
-   register unsigned char   uSentCount;
-   volatile static uint8_t timeCount;
+   volatile uint8_t timeCount;
 
    while ( uSerialGetFree() < MAXSENDLENGTH )
    {
-      for ( uSentCount = 0; uSentCount < 250; uSentCount++ )
-      {
          timeCount++;
-      }
    }
 }
 
@@ -261,7 +257,7 @@ Commands
  --------------------------------------------------*/
 static void f_he( char *argv )
 {
-   int iCount;
+   uint8_t iCount;
 
    (void) argv;
    vLogInfo( PSTR("HELP: First two characters are the command; implemented are:") );
@@ -308,12 +304,11 @@ static void f_ru( char *argv )
    {
       switch (iChannel)
       {
-         case 1 :   uStartFlag[0] = 1; break;
-         case 2 :   uStartFlag[1] = 1; break;
-         case 3 :   uStartFlag[0] = 1; uStartFlag[1] = 1; break;
+         case 1 :   sSetChannel[0].uStartFlag = 1; break;
+         case 2 :   sSetChannel[1].uStartFlag = 1; break;
+         case 3 :   sSetChannel[0].uStartFlag = 1; sSetChannel[1].uStartFlag = 1; break;
          default :  break;
       }
-
    }
 }
 
@@ -325,8 +320,8 @@ static void f_of( char *argv )
 {
    (void) argv;
    vLogInfo( PSTR( "Off" ));
-   uStartFlag[0] = 0;
-   uStartFlag[1] = 0;
+   sSetChannel[0].uStartFlag = 0;
+   sSetChannel[0].uStartFlag = 0;
 }
 
 /*--------------------------------------------------
@@ -354,15 +349,15 @@ static void f_ss( char *argv )
       vSendCR();
       waitPrint();                         /* wait for room to print */
       vLogString( PSTR( "Voltage V1, V2:         " ));
-      print_uint16_base10(uVoltages[i][0]);
+      print_uint16_base10(sSetChannel[i].uVoltages[0]);
       SendCommaSpace();
-      print_uint16_base10(uVoltages[i][1]);
+      print_uint16_base10(sSetChannel[i].uVoltages[1]);
       vSendCR();
       waitPrint();                         /* wait for room to print */
       vLogString( PSTR( "Timings T0,T1,T2,T3,T4: " ));
       for ( j = 0; j < 5; j++)
       {
-         print_uint16_base10(uTimes[i][j]);
+         print_uint16_base10(sSetChannel[i].uTimes[j]);
          if ( j < 4 )
          {
             SendCommaSpace();
@@ -373,7 +368,7 @@ static void f_ss( char *argv )
       vLogString( PSTR( "Delta DT, DP, DM:       " ) );
       for ( j = 0; j < 3; j++)
       {
-         print_uint16_base10(uDelta[i][j]);
+         print_uint16_base10(sSetChannel[i].uDelta[j]);
          if ( j < 2 )
          {
             SendCommaSpace();
@@ -382,7 +377,7 @@ static void f_ss( char *argv )
       vSendCR();
       waitPrint();                         /* wait for room to print */
       vLogString( PSTR( "Pulse Counts RPT:       " ));
-      print_uint16_base10(pulseCount[i]);
+      print_uint16_base10(sSetChannel[i].pulseCount);
       vSendCR();
    }
 }
@@ -422,7 +417,6 @@ static void f_sv( char *argv )
       vShowParmError(1);
       return;
    }
-   vSendCR();
    if ( (uVolts[0] > 50) || (uVolts[1] > 50) )
    {
       vShowParmError(0);
@@ -430,8 +424,8 @@ static void f_sv( char *argv )
    }
    /* Set the resulting parameters */
    iChannel -= 1;
-   uVoltages[iChannel][0] = uVolts[0];
-   uVoltages[iChannel][1] = uVolts[1];
+   sSetChannel[iChannel].uVoltages[0] = uVolts[0];
+   sSetChannel[iChannel].uVoltages[1] = uVolts[1];
 }
 
 /*--------------------------------------------------
@@ -471,12 +465,12 @@ static void f_st( char *argv )
       uPoint++;
    }
    // vDebugHex( PSTR( "Times " ), (unsigned char *) &uTempTimes[0], 10);
-   vSendCR();
+   // vSendCR();
    /* Set the resulting parameters */
    iChannel -= 1;
    for ( i = 0; i < TIMECOUNT; i++ )
    {
-      uTimes[iChannel][i] = uTempTimes[i];
+      sSetChannel[iChannel].uTimes[i] = uTempTimes[i];
    }
 }
 
@@ -516,7 +510,7 @@ static void f_sd( char *argv )
       uPoint++;
    }
    // vDebugHex( PSTR( "Deltas " ), (unsigned char *) &uTempDelta[0], 6);
-   vSendCR();
+   // vSendCR();
    if ( uTempDelta[2] > 10 )
    {
       vShowParmError(0);
@@ -526,7 +520,7 @@ static void f_sd( char *argv )
    iChannel -= 1;
    for ( i = 0; i < 3; i++ )
    {
-      uDelta[iChannel][i] = uTempDelta[i];
+      sSetChannel[iChannel].uDelta[i] = uTempDelta[i];
    }
 }
 
@@ -561,9 +555,9 @@ static void f_sc( char *argv )
       return;
    }
    // vDebugHex( PSTR( "Count " ), (unsigned char *) &uTempCount, 2);
-   vSendCR();
+   // vSendCR();
    /* Set the resulting parameters */
-   pulseCount[iChannel - 1] = uTempCount;
+   sSetChannel[iChannel - 1].pulseCount = uTempCount;
 }
 
 /*--------------------------------------------------
@@ -573,7 +567,7 @@ Commands
 static void f_wr( char *argv )
 {
    uint8_t  size;
-   uint8_t  *ptr = &uStartFlag[0];      /* beginning of settings
+   uint8_t  *ptr = &sSetChannel[0].uStartFlag;      /* beginning of settings
                                           */
    (void) argv;
    vLogInfo( PSTR( "Writing to eeprom" ));
@@ -607,7 +601,7 @@ static void vParseCommand( void )
 {
    char    *pcCurrent;                 /* current character */
    char    *pszArgv[2];
-   int     iCount;
+   uint8_t iCount;
 
    pcCurrent = acUserInput;            /* the buffer from the serial line */
 
