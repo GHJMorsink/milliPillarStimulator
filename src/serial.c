@@ -121,7 +121,7 @@ void vSerialInit( void )
 	iRxOutPtr = 0;
 	iTxInPtr = 0;
 	iTxOutPtr = 0;
-   vSetBaud( 3 );          /* set a default baudrate (overwritten by the user) */
+   vSetBaud( 4 );          /* set a default baudrate (overwritten by the user) */
 	uTxOverflow = 0;
 	uRxOverflow = 0;
 }

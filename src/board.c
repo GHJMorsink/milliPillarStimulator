@@ -15,23 +15,14 @@
 
 /***------------------------- Includes ----------------------------------***/
 #include <avr/interrupt.h>
+#include <avr/io.h>
 #include <stdint.h>
 #include <avr/wdt.h>
 #include <string.h>
 #include <avr/pgmspace.h>
 #include "board.h"
 
-
 /***------------------------- Defines ------------------------------------***/
-
-#if defined(__AVR_ATmega8__)
-#define  ATM8    1
-// #define MAIN_CLK                 8000000      /* System runs at 8 MHz */
-#else
-#define  ATM8    0
-// #define MAIN_CLK                 16000000      /* System runs at 16 MHz */
-#endif
-
 
 /*--------------------------------------------------
 SPI devices defines
@@ -60,20 +51,20 @@ SPI devices defines
 channel selects and direction ports for the H-bridges
  port is PD for A, C, D. port is PB for B
  --------------------------------------------------*/
-#define A_Enable     2
-#define B_Enable     1
-#define C_Enable     6
-#define D_Enable     4
-#define A_Direction  3
-#define B_Direction  0
-#define C_Direction  7
-#define D_Direction  5
+#define A_Enable           2
+#define B_Enable           1
+#define C_Enable           6
+#define D_Enable           4
+#define A_Direction        3
+#define B_Direction        0
+#define C_Direction        7
+#define D_Direction        5
 
 
-#define SetPD(pin)      PORTD |= (1 << pin)
-#define ResetPD(pin)    PORTD &= ~(1 << pin)
-#define SetPB(pin)      PORTB |= (1 << pin)
-#define ResetPB(pin)    PORTB &= ~(1 << pin)
+#define SetPD(pin)         PORTD |= (1 << pin)
+#define ResetPD(pin)       PORTD &= ~(1 << pin)
+#define SetPB(pin)         PORTB |= (1 << pin)
+#define ResetPB(pin)       PORTB &= ~(1 << pin)
 
 /***------------------------- Types -------------------------------------***/
 
@@ -178,8 +169,8 @@ void setHBridge(uint8_t channel, uint8_t side)
 {
    switch ( channel )
    {
-      case POSITIVE :
-         if (side)
+      case 1 :
+         if (side != POSITIVE)
          {
             SetPD(A_Direction);
             SetPB(B_Direction);
@@ -191,9 +182,9 @@ void setHBridge(uint8_t channel, uint8_t side)
          SetPD(A_Enable);
          SetPB(B_Enable);
          break;
-      case NEGATIVE :
+      case 0 :
       default:
-         if (side)
+         if (side != POSITIVE)
          {
             SetPD(C_Direction);
             SetPD(D_Direction);

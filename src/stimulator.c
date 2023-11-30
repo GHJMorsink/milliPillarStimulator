@@ -43,7 +43,7 @@ The cooperative RoundRobin
 int main(void)
 {
    vInitBoard();                        /* for getting correct internal clock */
-   vInitTimer(TWO_MS);
+   vInitTimer();
    vSerialInit();
    vTerminalInit();
    vInitWaveform();

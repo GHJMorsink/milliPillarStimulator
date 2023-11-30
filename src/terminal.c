@@ -84,10 +84,10 @@ static const struct sAccess
     { f_he,     "HE  HElp" },
     { f_ve,     "VE  Show VErsion" },
     { f_ru,     "RU  <1..3> RUn Start pulses" },
-    { f_of,     "OF  Set all outputs OFf" },
+    { f_of,     "OF  Set all outputs OFf (or <1..2>)" },
     { f_ss,     "SS  Show Settings" },
     { f_sv,     "SV  <1..2>,<0..50>,<0..50> Set Voltage on 1 or 2, pos. and neg. pulse" },
-    { f_st,     "ST  <1..2>,<0..65535>,..,<0..65535> Set Timing on 1 or 2; 5 timing parameters" },
+    { f_st,     "ST  <1..2>,<0..65535>,..,<0..65535> Set Timing on 1 or 2; 5 timing parms" },
     { f_sd,     "SD  <1..2>,<0..65535>,<0..65535>,<0..255> Set Delta timing on 1 or 2" },
     { f_sc,     "SC  <1..2>,<0..65535> Set repeat count" },
     { f_wr,     "WR  Write/store all settings to eeprom" }
@@ -314,14 +314,36 @@ static void f_ru( char *argv )
 
 /*--------------------------------------------------
 Commands
-  Off, Stop all
+  Off, Stop all or specific
  --------------------------------------------------*/
 static void f_of( char *argv )
 {
+   uint16_t   iChannel;
+   uint8_t    uPoint;             /* pointer into the argument string */
+   uint8_t    iRc;
+
+   uPoint = 0;
+   iRc = read_uint( argv, &uPoint, &iChannel ); /* get channel to work on */
+   if (! iRc)
+   {
+      vLogInfo( PSTR( "Off" ));
+      sSetChannel[0].uStartFlag = 0;
+      sSetChannel[1].uStartFlag = 0;
+   }
+   else if ( (iChannel == 0) || (iChannel > 3) )
+   {
+      vShowParmError(0);
+   }
+   else
+   {
+      switch( iChannel)
+      {
+         case 1 :   sSetChannel[0].uStartFlag = 0; break;
+         case 2 :   sSetChannel[1].uStartFlag = 0; break;
+         default :  break;
+      }
+   }
    (void) argv;
-   vLogInfo( PSTR( "Off" ));
-   sSetChannel[0].uStartFlag = 0;
-   sSetChannel[0].uStartFlag = 0;
 }
 
 /*--------------------------------------------------

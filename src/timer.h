@@ -17,12 +17,6 @@
 #ifndef TIMER_H_
 #define TIMER_H_
 
-/***------------------------- Defines ------------------------------------***/
-
-#define SIXTEEN_MS  187
-#define TEN_MS      117
-#define FIVE_MS     58
-#define TWO_MS      30
 
 /***------------------------- Includes ----------------------------------***/
 #include <stdint.h>
@@ -40,7 +34,7 @@ extern uint16_t     uSystemTimerCounter;              /* counting */
 /*--------------------------------------------------
  Initialize hardware
  --------------------------------------------------*/
-extern void vInitTimer( uint8_t timing );
+extern void vInitTimer( void );
 
 /*--------------------------------------------------
  Deliver a mutexed copy of the system timer
