@@ -188,6 +188,9 @@
     <Compile Include="terminal.c">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="terminal.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="timer.c">
       <SubType>compile</SubType>
       <CustomCompilationSetting Condition="'$(Configuration)' == 'Release'">-save-temps -fverbose-asm -g</CustomCompilationSetting>

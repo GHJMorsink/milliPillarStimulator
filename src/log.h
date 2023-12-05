@@ -48,7 +48,21 @@ extern void vDebugHex( const char *szHeader, unsigned char *acData, unsigned int
 extern void vLogInfo( const char *szHeader );
 extern void vLogString( const char *szHeader );
 
+/*--------------------------------------------------
+Prints an uint8 variable in base 10.
+ --------------------------------------------------*/
+extern void print_uint16_base10(uint16_t n);
 
+/*--------------------------------------------------
+vSendCR
+    send a new line
+ --------------------------------------------------*/
+extern void vSendCR( void );
+
+/*--------------------------------------------------
+ Send a separation
+ --------------------------------------------------*/
+extern void SendCommaSpace(void);
 
 #endif /* LOG_H_ */
 

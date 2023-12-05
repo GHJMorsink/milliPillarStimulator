@@ -17,7 +17,6 @@
 #include <avr/interrupt.h>
 #include <avr/io.h>
 #include <stdint.h>
-#include <avr/wdt.h>
 #include <string.h>
 #include <avr/pgmspace.h>
 #include "board.h"
@@ -47,6 +46,7 @@ SPI devices defines
 /* The macro version */
 #define vXmtSPI(dat)       {SPDR=(dat); loop_until_bit_is_set(SPSR,SPIF);}
 
+//#define vXmtSPI(dat)       {(void)dat;}
 /*--------------------------------------------------
 channel selects and direction ports for the H-bridges
  port is PD for A, C, D. port is PB for B
@@ -77,10 +77,10 @@ channel selects and direction ports for the H-bridges
 /***------------------------ Local functions ----------------------------***/
 
 
+#if defined(__AVR_ATmega8__)
 /*--------------------------------------------------
  Write register to the MCP2510
  --------------------------------------------------*/
-#define SetPA(pin)   PORTA |= (1 << pin)
 static void vMCP2510WriteRegister ( unsigned char uRegister, unsigned char uData )
 {
    mcp2510_select();
@@ -95,14 +95,11 @@ static void vMCP2510WriteRegister ( unsigned char uRegister, unsigned char uData
  --------------------------------------------------*/
 static void vInitMCP( void )
 {
-
-   SPCR = 0x50;                        /* Enable SPI function in mode 0 (fast interface) */
-   SPSR = 0x00;                        /* SPI normal mode */
-
    vXmtSPI( CAN_RESET );               /* Reset MCP2515 via spi-interface */
-   vMCP2510WriteRegister( CANCTRL, 0x84 );  /* request config mode, clock enable, div by 1 */
+   vMCP2510WriteRegister( CANCTRL, 0x84 );  /* request config mode, clock enable, div by 2 */
    /* we do not need to set the mcp in operational mode! */
 }
+#endif
 
 /*--------------------------------------------------
 write data to MCP42100 potentiometer
@@ -133,17 +130,21 @@ static void vWritePot(uint8_t value, uint8_t pot)
 void vInitBoard(void)
 {
    cli();                               /* no interrupts anymore */
-   wdt_disable();                       /* disable the watchdog */
+   /* init ports */
+   DDRD  = 0xFC;  //0b11111100;        /* Set the port to correct configuration (pd2..pd7 output) */
+   PORTD = 0;                          /* None of the H-Bridges enabled */
+   DDRB  = 0x2F;  //0b00101111;        /* Set the port to correct configuration (pb0/1=outp, PB2=CS, PB3=MOSI, PB4=MISO, PB5=CLK */
+   PORTB = 0xFC;  //0b11111100;
+   DDRC  = 0x20;  //0b00100000;         /* PC5 is led */
+   PORTC = 0x20;                        /* PC5 '1' is off */
+   /* init SPI (datadirection is already set) (must be done after port dir initialization) */
+   SPCR = 0x50;                        /* Enable SPI function in master mode 0 (fast interface) */
+   SPSR = 0x00;                        /* SPI normal mode */
 
-   DDRD  = 0xFC;  //0b00101110;        /* Set the port to correct configuration (pd2..pd7 output) */
-   PORTD = 0;
-   DDRB  = 0x2E;  //0b00101110;        /* Set the port to correct configuration (pb1=led, PB2=CS, PB3=MOSI, PB4=MISO, PB5=CLK */
-   PORTB = 0xFF;  //0b11111111;
-
+#if defined(__AVR_ATmega8__)
    vInitMCP();                          /* for getting correct internal clock */
+#endif
    sei();
-   clearHBridge(0);
-   clearHBridge(1);
 }
 
 /*--------------------------------------------------
@@ -151,7 +152,7 @@ void vInitBoard(void)
  --------------------------------------------------*/
 void setVoltage(uint8_t channel, uint8_t decivolts)
 {
-   if ( (channel == 0) || (channel == 2) )
+   if ( (channel == 0) || (channel == 1) )
    {
       vWritePot(decivolts, 0);
    } else
@@ -163,38 +164,54 @@ void setVoltage(uint8_t channel, uint8_t decivolts)
 /*--------------------------------------------------
 Set H-Bridge function for a channel
  This will enable the channel in either pos or neg side
- channel: 0 for A and B, 1 for C and D
+ channel: 0 for A and 1 B, 2 for C and 3 D
  --------------------------------------------------*/
 void setHBridge(uint8_t channel, uint8_t side)
 {
-   switch ( channel )
+   if ( side == POSITIVE )
    {
-      case 1 :
-         if (side != POSITIVE)
-         {
-            SetPD(A_Direction);
-            SetPB(B_Direction);
-         } else
-         {
+      switch ( channel )
+      {
+         case 0 :
             ResetPD(A_Direction);
+            SetPD(A_Enable);
+            break;
+         case 1 :
             ResetPB(B_Direction);
-         }
-         SetPD(A_Enable);
-         SetPB(B_Enable);
-         break;
-      case 0 :
-      default:
-         if (side != POSITIVE)
-         {
-            SetPD(C_Direction);
-            SetPD(D_Direction);
-         } else
-         {
-            ResetPD(C_Direction);
-            ResetPD(D_Direction);
-         }
-         SetPD(C_Enable);
-         SetPD(D_Enable);
+            SetPB(B_Enable);
+            break;
+         case 2 :
+            ResetPB(C_Direction);
+            SetPB(C_Enable);
+            break;
+         case 3 :
+         default:
+            ResetPB(D_Direction);
+            SetPB(D_Enable);
+            break;
+      }
+   } else
+   {
+      switch ( channel )
+      {
+         case 0 :
+            SetPD(A_Direction);
+            SetPD(A_Enable);
+            break;
+         case 1 :
+            SetPB(B_Direction);
+            SetPB(B_Enable);
+            break;
+         case 2 :
+            SetPB(C_Direction);
+            SetPB(C_Enable);
+            break;
+         case 3 :
+         default:
+            SetPB(D_Direction);
+            SetPB(D_Enable);
+            break;
+      }
    }
 }
 
@@ -205,15 +222,11 @@ void clearHBridge(uint8_t channel)
 {
    switch ( channel )
    {
-      case 0 :
-         ResetPD(A_Enable);
-         ResetPB(B_Enable);
-         break;
-      case 1 :
-      default:
-         ResetPD(C_Enable);
-         ResetPD(D_Enable);
-         break;
+      case 0 :  ResetPD(A_Enable); break;
+      case 1 :  ResetPB(B_Enable); break;
+      case 2 :  ResetPB(C_Enable); break;
+      case 3 :
+      default:  ResetPB(D_Enable); break;
    }
 }
 

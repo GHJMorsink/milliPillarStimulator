@@ -192,6 +192,58 @@ void vLogString( const prog_char *szHeader )
     }
     memcpy_P( acTotalString, szHeader, iTotalLen );
     NA_WriteBuffer( acTotalString, iTotalLen );
+    vSerialPutChar( ' ' );              /* always add a space */
 }
+
+/*--------------------------------------------------
+Prints an uint8 variable in base 10.
+ --------------------------------------------------*/
+void print_uint16_base10(uint16_t n)
+{
+   uint8_t digits[5];                   /* uint16 has maximal 5 digits */
+   uint8_t cnt, zeroflag;
+
+   for ( cnt = 0; cnt < 5; cnt++ )
+   {
+      digits[cnt] = n % 10;
+      n /= 10;
+   }
+   zeroflag = 0;
+   cnt = 5;
+   while ( cnt > 0 )
+   {
+      cnt -=  1;
+      if ( (digits[cnt] != 0) || (cnt == 0) )
+      {
+         zeroflag = 1;                  /* last digit must be shown; all after non-zero digit must be shown */
+      }
+      if ( zeroflag != 0 )
+      {
+         /* Show the digit(s) in the correct sequence */
+         vSerialPutChar( ('0' + digits[cnt]) );
+      }
+   }
+}
+
+/*--------------------------------------------------
+vSendCR
+    send a new line
+ --------------------------------------------------*/
+void vSendCR( void )
+{
+    vSerialPutChar( '\r' );
+    vSerialPutChar( '\n' );
+}
+
+/*--------------------------------------------------
+ Send a separation
+ --------------------------------------------------*/
+void SendCommaSpace(void)
+{
+   vSerialPutChar( ',' );
+   vSerialPutChar( 0x20 );
+}
+
+
 
 /* EOF */

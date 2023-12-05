@@ -20,8 +20,12 @@
 #include <stdint.h>
 
 
-#define POSITIVE     1
-#define NEGATIVE     0
+#define POSITIVE        1
+#define NEGATIVE        0
+
+#define LED_PIN         5               /* pin SCL on ArduinoUNO */
+#define LED_ON()        PORTC &= ~(1 << LED_PIN)
+#define LED_OFF()       PORTC |= (1 << LED_PIN)
 
 
 extern void vInitBoard(void);           /* Initialize all board items */

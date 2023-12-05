@@ -28,7 +28,7 @@ The parameters are as follows:
 | V2    | Voltage (in units of 0.1Volt) for the negative pulse |
 |  |    |
 | DT    | Delta time (in ms): amount which will decrease the period time every time DP pulses are emitted (0 means there is no frequency increase)  |
-| DP    | Delta pulses: amount of pulses after which the peeriod timewhich will decrease the period time every time DP pulses are emitted  |
+| DP    | Delta pulses: amount of pulses after which the period time will decrease. The period time decreases every time DP pulses are emitted  |
 | DM    | Delta max: the maximum number of dreceasing instances after which the period time is reset to T4 and cycling starts again  |
 |  |    |
 | RPT   | Number of pulses to be given after the 'RUn' command (0 means the pulses go on forever / until the 'OFf' command) |
@@ -52,13 +52,13 @@ The commands recognized by the stimulator are:
 |--------------------|-------------------------------------------------------------------|
 | `HE`               | Gives HElp output  |
 | `VE`               | Gives VErsion information |
-| `RU <1..3>`        | Start giving pulses on 1: A/B channel, 2: C/D channel, 3: all channels |
-| `OF`               | Stop emitting pulses on all channels (OFf) |
+| `RU [<1..4>]`      | Start giving pulses on 1 (A channel), 2, 3 or 4 (D channel). If channel is omitted all channels are started |
+| `OF [<1..4>]`      | Stop emitting pulses on all channels (OFf) or a specific one |
 | `SS`               | ShowSettings; shows all current parameters |
-| `SV <1..2>,<0..50>,<0..50>` | SetVoltages for 1: channel A/B, 2: channel C/D. The second parameter is for V1, the third for V2 |
-| `ST <1..2>,<0..65535>,..,<0..65535>` | SetTimes for channel A/B or C/D. The second parameter is T0, third T1, and up to sixth for T4 |
-| `SD <1..2>,<0..65535>,<0..65535>,<0..255>` | SetDeltas for channel A/B or C/D. The second parameter is DT, third is DP, and fourth DM |
-| `SC <1..2>,<0..65535>` | Set repeat Count. Set the number of pulses on channel A/B or C/D. |
+| `SV <1..4>,<0..50>,<0..50>` | SetVoltages for channel 1 (A), 2 (B), 3 (C) or 4 (D). The second parameter is for V1, the third for V2 |
+| `ST <1..4>,<0..65535>,..,<0..65535>` | SetTimes for a channel. The second parameter is T0, third T1, and up to sixth for T4 |
+| `SD <1..4>,<0..65535>,<0..65535>,<0..255>` | SetDeltas for channel A, B, C or D. The second parameter is DT, third is DP, and fourth DM |
+| `SC <1..4>,<0..65535>` | Set repeat Count. Set the number of pulses on a channel. |
 | `WR`               | Write (store) all settings to EEPROM, including the start-flags. On power up these settings are read from EEPROM. |
 |  |    | 
  
@@ -67,6 +67,9 @@ Notes:
  - No spaces allowed around the commas
  - Values are given in decimal positive form
  - `<0..65535>` means a value has to be given between (and included) 0 and 65535
+ - brackets mean "optional"
+ - On the line, after the command, additional comments can be given if separated by a blank (space comma etc). This allows
+ for writing a script with comments for your serial terminal program.
  - A command can be edited while entered and will be executed when the 'enter'-key is pressed (sending a CR on the line)
  - Empty commands do nothing, illegal or wrongly composed commands are responded on with a short explanation
  
@@ -88,5 +91,30 @@ The firmware, written in C, can be found in `src`. It is written and compiled wi
 portability and a flexable environment.
 The resulting .hex and .elf files (in the `src/Release` map) can be downloaded to the Arduino using the Arduino IDE.
   
-For this project you need .... It is tested on Windows10 and should run on any system running ....
+In case you want to compile and/or change the firmware yourself, you need for this project Microchip Studio 7.0. 
+Downloadable from https://www.microchip.com/en-us/tools-resources/develop/microchip-studio#Downloads
+
   
+### How to upload hex-file to Arduino
+----------------------------------
+
+There are several good descriptions on the web:
+
+- https://arduino.stackexchange.com/questions/60599/how-can-i-upload-a-hex-file-to-an-arduino-uno
+- https://forum.arduino.cc/t/the-simplest-way-to-upload-a-compiled-hex-file-without-the-ide/401996
+- https://www.aranacorp.com/en/generating-and-uploading-hex-files-to-an-arduino/
+
+
+### Hardware
+-----------
+
+The system can run for channels 1,3 and 4 (A, C and D) without any modification. Because the serial port is attached/shared on the
+Arduino on port number D0 and D1 (that is port PD0 and PD1 of the ATMega328) they can not be used for controlling H-bridge 'B'.
+This firmware switched the control to port PB0 and PB1 of the ATMega328 (that's 'D8' and 'D9' on the Arduino Uno). 
+So, to use these ports (and channel 'B'), one has to cut the traces on the extension board to 'D0' and 'D1' and solder two fine enamelled copper wires from 'D8'
+to pin3 of H-BRIDGE1 and from 'D9' to pin4 of H-BRIDGE1.
+
+Furthermore: There is in the original setup no indication pulses are emitted. The new firmware can indicate pulses are given. For doing
+that, a LED has to be connected on the extension board. Take a green, yellow, orange or red LED (not blue or white) and a resistor 470 ohm 0.25W.
+Connect anode to +5Volt, cathode to resistor, other side of resistor to PC5 / 'SCL' on the Arduino. It will flash on every pulse given by one of the channels.
+

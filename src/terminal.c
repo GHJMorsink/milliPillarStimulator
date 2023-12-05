@@ -18,6 +18,7 @@
 #include <avr/io.h>
 #include <avr/pgmspace.h>
 #include <avr/eeprom.h>
+#include <avr/wdt.h>
 
 #include <string.h>
 #include <ctype.h>
@@ -51,7 +52,6 @@
 /***------------------------- Local Data --------------------------------***/
 
 static char    acUserInput[MAXINPUTLENGTH];              /* Console input buffer */
-//static uint8_t uHalf = 0;
 
 /***------------------------ Global Data --------------------------------***/
 /*--------------------------------------------------
@@ -74,6 +74,7 @@ static void  f_st( char *argv );
 static void  f_sd( char *argv );
 static void  f_sc( char *argv );
 static void  f_wr( char *argv );
+static void  f_bo( char *argv );
 
 /***----------------------- Local Types ---------------------------------***/
 static const struct sAccess
@@ -83,14 +84,15 @@ static const struct sAccess
 } asAccessArr[] = {
     { f_he,     "HE  HElp" },
     { f_ve,     "VE  Show VErsion" },
-    { f_ru,     "RU  <1..3> RUn Start pulses" },
-    { f_of,     "OF  Set all outputs OFf (or <1..2>)" },
+    { f_ru,     "RU  <1..4> RUn Start pulses" },
+    { f_of,     "OF  Set all outputs OFf (or <1..4>)" },
+    { f_bo,     "BO  BOot/reset (firmware update)" },
     { f_ss,     "SS  Show Settings" },
-    { f_sv,     "SV  <1..2>,<0..50>,<0..50> Set Voltage on 1 or 2, pos. and neg. pulse" },
-    { f_st,     "ST  <1..2>,<0..65535>,..,<0..65535> Set Timing on 1 or 2; 5 timing parms" },
-    { f_sd,     "SD  <1..2>,<0..65535>,<0..65535>,<0..255> Set Delta timing on 1 or 2" },
-    { f_sc,     "SC  <1..2>,<0..65535> Set repeat count" },
-    { f_wr,     "WR  Write/store all settings to eeprom" }
+    { f_sv,     "SV  <1..4>,<0..50>,<0..50> Set Voltage; pos. and neg. pulse" },
+    { f_st,     "ST  <1..4>,<0..65535>,..,<0..65535> Set Timing; 5 timing parms" },
+    { f_sd,     "SD  <1..4>,<0..65535>,<0..65535>,<0..255> Set Delta timing" },
+    { f_sc,     "SC  <1..4>,<0..65535> Set repeat count" },
+    { f_wr,     "WR  Write/store all settings" }
 };
 
 #define  iAccArrSize (sizeof(asAccessArr) / sizeof(struct sAccess))
@@ -136,45 +138,15 @@ uint8_t read_uint(char *line, uint8_t *char_counter, uint16_t *variable_ptr)
 }
 
 /*--------------------------------------------------
-Prints an uint8 variable in base 10.
- --------------------------------------------------*/
-void print_uint16_base10(uint16_t n)
-{
-   uint8_t digits[5];                   /* uint16 has maximal 5 digits */
-   uint8_t cnt, zeroflag;
-
-   for ( cnt = 0; cnt < 5; cnt++ )
-   {
-      digits[cnt] = n % 10;
-      n /= 10;
-   }
-   zeroflag = 0;
-   cnt = 5;
-   while ( cnt > 0 )
-   {
-      cnt -=  1;
-      if ( (digits[cnt] != 0) || (cnt == 0) )
-      {
-         zeroflag = 1;                  /* last digit must be shown; all after non-zero digit must be shown */
-      }
-      if ( zeroflag != 0 )
-      {
-         /* Show the digit(s) in the correct sequence */
-         vSerialPutChar( ('0' + digits[cnt]) );
-      }
-   }
-}
-
-/*--------------------------------------------------
 Wait for room in serial output buffer
  --------------------------------------------------*/
 static void waitPrint(void)
 {
-   volatile uint8_t timeCount;
+   volatile uint8_t count;
 
    while ( uSerialGetFree() < MAXSENDLENGTH )
    {
-         timeCount++;
+      count++;
    }
 }
 
@@ -193,16 +165,6 @@ static void vWriteString( char * const szString, unsigned char uLength )
 }
 
 /*--------------------------------------------------
-vSendCR
-    send a new line
- --------------------------------------------------*/
-static void vSendCR( void )
-{
-    vSerialPutChar( '\r' );
-    vSerialPutChar( '\n' );
-}
-
-/*--------------------------------------------------
 vShowPrompt
     Show the prompt to the user
  --------------------------------------------------*/
@@ -210,7 +172,7 @@ static void vShowPrompt( void )
 {
     uint8_t i;
 
-    vLogString( PSTR( "TERM> " ));   /* show prompt */
+    vLogString( PSTR( "TERM>" ));   /* show prompt */
     for ( i = 0; i < MAXINPUTLENGTH; i++ )
     {
        acUserInput[i] = '\0';      /* clear the inputline */
@@ -224,12 +186,12 @@ static void vShowParmError( uint8_t type )
 {
    if ( type == 0 )
    {
-      vLogInfo( PSTR( "Parameter out of bounds error" ));
-   }
-   else
+      vLogString( PSTR( "Parameter out of bounds" ) );
+   } else
    {
-      vLogInfo( PSTR( "Parameter missing error" ));
+      vLogString( PSTR( "Parameter missing" ) );
    }
+   vLogInfo( PSTR( "error" ) );
 }
 
 /*--------------------------------------------------
@@ -260,7 +222,7 @@ static void f_he( char *argv )
    uint8_t iCount;
 
    (void) argv;
-   vLogInfo( PSTR("HELP: First two characters are the command; implemented are:") );
+   vLogInfo( PSTR("HELP: First two characters are the command; implemented:") );
    vSendCR();
    for ( iCount = 0; iCount < iAccArrSize; iCount++ )
    {                                   /* write all strings */
@@ -282,6 +244,21 @@ static void f_ve( char *argv )
 
 /*--------------------------------------------------
 Commands
+  Boot
+ --------------------------------------------------*/
+static void f_bo( char *argv )
+{
+   (void) argv;
+   vLogInfo( PSTR("Reboot") );
+   wdt_enable(WDTO_60MS);
+   for(;;)
+   {
+      ;                           /* wait on watchdog (60ms) */
+   }
+}
+
+/*--------------------------------------------------
+Commands
   run
  --------------------------------------------------*/
 static void f_ru( char *argv )
@@ -294,21 +271,18 @@ static void f_ru( char *argv )
    iRc = read_uint( argv, &uPoint, &iChannel ); /* get channel to work on */
    if (! iRc)
    {
-      vShowParmError(1);
+      for(uPoint = 0; uPoint < CHANNELCOUNT; uPoint++)
+      {
+         sSetChannel[uPoint].uStartFlag = 1;    /* start all */
+      }
    }
-   else if ( (iChannel == 0) || (iChannel > 3) )
+   else if ( (iChannel == 0) || (iChannel > CHANNELCOUNT) )
    {
       vShowParmError(0);
    }
    else
    {
-      switch (iChannel)
-      {
-         case 1 :   sSetChannel[0].uStartFlag = 1; break;
-         case 2 :   sSetChannel[1].uStartFlag = 1; break;
-         case 3 :   sSetChannel[0].uStartFlag = 1; sSetChannel[1].uStartFlag = 1; break;
-         default :  break;
-      }
+      sSetChannel[iChannel - 1].uStartFlag = 1;    /* start specific */
    }
 }
 
@@ -327,35 +301,25 @@ static void f_of( char *argv )
    if (! iRc)
    {
       vLogInfo( PSTR( "Off" ));
-      sSetChannel[0].uStartFlag = 0;
-      sSetChannel[1].uStartFlag = 0;
+      for(uPoint = 0; uPoint < CHANNELCOUNT; uPoint++)
+      {
+         sSetChannel[uPoint].uStartFlag = 0;    /* stop all */
+      }
    }
-   else if ( (iChannel == 0) || (iChannel > 3) )
+   else if ( (iChannel == 0) || (iChannel > CHANNELCOUNT) )
    {
       vShowParmError(0);
    }
    else
    {
-      switch( iChannel)
-      {
-         case 1 :   sSetChannel[0].uStartFlag = 0; break;
-         case 2 :   sSetChannel[1].uStartFlag = 0; break;
-         default :  break;
-      }
+      sSetChannel[iChannel - 1].uStartFlag = 0;    /* stop specific */
    }
-   (void) argv;
 }
 
 /*--------------------------------------------------
 Commands
   Show settings
  --------------------------------------------------*/
-static void SendCommaSpace(void)
-{
-   vSerialPutChar( ',' );
-   vSerialPutChar( 0x20 );
-}
-
 static void f_ss( char *argv )
 {
    uint8_t  i, j;
@@ -366,17 +330,17 @@ static void f_ss( char *argv )
    {
       vSendCR();
       waitPrint();                         /* wait for room to print */
-      vLogString( PSTR( "Settings channel:       " ));
+      vLogString( PSTR( "Settings channel:      " ));
       print_uint16_base10(i+1);
       vSendCR();
       waitPrint();                         /* wait for room to print */
-      vLogString( PSTR( "Voltage V1, V2:         " ));
+      vLogString( PSTR( "Voltage V1, V2:        " ));
       print_uint16_base10(sSetChannel[i].uVoltages[0]);
       SendCommaSpace();
       print_uint16_base10(sSetChannel[i].uVoltages[1]);
       vSendCR();
       waitPrint();                         /* wait for room to print */
-      vLogString( PSTR( "Timings T0,T1,T2,T3,T4: " ));
+      vLogString( PSTR( "Timings T0,T1,T2,T3,T4:" ));
       for ( j = 0; j < 5; j++)
       {
          print_uint16_base10(sSetChannel[i].uTimes[j]);
@@ -387,7 +351,7 @@ static void f_ss( char *argv )
       }
       vSendCR();
       waitPrint();                         /* wait for room to print */
-      vLogString( PSTR( "Delta DT, DP, DM:       " ) );
+      vLogString( PSTR( "Delta DT, DP, DM:      " ) );
       for ( j = 0; j < 3; j++)
       {
          print_uint16_base10(sSetChannel[i].uDelta[j]);
@@ -398,7 +362,7 @@ static void f_ss( char *argv )
       }
       vSendCR();
       waitPrint();                         /* wait for room to print */
-      vLogString( PSTR( "Pulse Counts RPT:       " ));
+      vLogString( PSTR( "Pulse Counts RPT:      " ));
       print_uint16_base10(sSetChannel[i].pulseCount);
       vSendCR();
    }
@@ -412,11 +376,11 @@ static void f_sv( char *argv )
 {
    uint16_t   iChannel;
    uint16_t   uVolts[2];
-   uint8_t    uPoint;             /* pointer into the argument string */
+   uint8_t    uPoint;                                 /* pointer into the argument string */
    uint8_t    iRc;
 
    uPoint = 0;
-   iRc = read_uint( argv, &uPoint, &iChannel ); /* get channel to work on */
+   iRc = read_uint( argv, &uPoint, &iChannel );       /* get channel to work on */
    if (! iRc)
    {
       vShowParmError(1);
@@ -428,11 +392,11 @@ static void f_sv( char *argv )
       return;
    }
    uPoint++;
-   iRc = read_uint( argv, &uPoint, &uVolts[0] ); /* get V1 */
+   iRc = read_uint( argv, &uPoint, &uVolts[0] );      /* get V1 */
    if ( iRc )
    {
       uPoint++;
-      iRc = read_uint( argv, &uPoint, &uVolts[1] ); /* get V2 */
+      iRc = read_uint( argv, &uPoint, &uVolts[1] );   /* get V2 */
    }
    if (! iRc)
    {
@@ -459,7 +423,7 @@ static void f_st( char *argv )
 
    uint16_t   iChannel;
    uint16_t   uTempTimes[TIMECOUNT];
-   uint8_t    uPoint;             /* pointer into the argument string */
+   uint8_t    uPoint;                           /* pointer into the argument string */
    uint8_t    iRc;
    uint8_t    i;
 
@@ -486,8 +450,6 @@ static void f_st( char *argv )
       }
       uPoint++;
    }
-   // vDebugHex( PSTR( "Times " ), (unsigned char *) &uTempTimes[0], 10);
-   // vSendCR();
    /* Set the resulting parameters */
    iChannel -= 1;
    for ( i = 0; i < TIMECOUNT; i++ )
@@ -531,8 +493,6 @@ static void f_sd( char *argv )
       }
       uPoint++;
    }
-   // vDebugHex( PSTR( "Deltas " ), (unsigned char *) &uTempDelta[0], 6);
-   // vSendCR();
    if ( uTempDelta[2] > 10 )
    {
       vShowParmError(0);
@@ -576,8 +536,6 @@ static void f_sc( char *argv )
       vShowParmError(1);
       return;
    }
-   // vDebugHex( PSTR( "Count " ), (unsigned char *) &uTempCount, 2);
-   // vSendCR();
    /* Set the resulting parameters */
    sSetChannel[iChannel - 1].pulseCount = uTempCount;
 }
@@ -734,7 +692,7 @@ static bool iCheckInputData( void )
 void vTerminalInit( void )
 {
    vSendCR();
-   vLogInfo( PSTR("Command Terminal monitor for stimulator"));
+   vLogInfo( PSTR("Command Terminal for stimulator"));
    f_ve( NULL );
    vShowPrompt();
 }
