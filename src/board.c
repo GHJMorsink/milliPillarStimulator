@@ -181,13 +181,13 @@ void setHBridge(uint8_t channel, uint8_t side)
             SetPB(B_Enable);
             break;
          case 2 :
-            ResetPB(C_Direction);
-            SetPB(C_Enable);
+            ResetPD(C_Direction);
+            SetPD(C_Enable);
             break;
          case 3 :
          default:
-            ResetPB(D_Direction);
-            SetPB(D_Enable);
+            ResetPD(D_Direction);
+            SetPD(D_Enable);
             break;
       }
    } else
@@ -203,13 +203,13 @@ void setHBridge(uint8_t channel, uint8_t side)
             SetPB(B_Enable);
             break;
          case 2 :
-            SetPB(C_Direction);
-            SetPB(C_Enable);
+            SetPD(C_Direction);
+            SetPD(C_Enable);
             break;
          case 3 :
          default:
-            SetPB(D_Direction);
-            SetPB(D_Enable);
+            SetPD(D_Direction);
+            SetPD(D_Enable);
             break;
       }
    }
@@ -224,9 +224,9 @@ void clearHBridge(uint8_t channel)
    {
       case 0 :  ResetPD(A_Enable); break;
       case 1 :  ResetPB(B_Enable); break;
-      case 2 :  ResetPB(C_Enable); break;
+      case 2 :  ResetPD(C_Enable); break;
       case 3 :
-      default:  ResetPB(D_Enable); break;
+      default:  ResetPD(D_Enable); break;
    }
 }
 
