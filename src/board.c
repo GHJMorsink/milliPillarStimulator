@@ -14,10 +14,19 @@
 */
 
 /***------------------------- Includes ----------------------------------***/
-#include <avr/interrupt.h>
 #include <avr/io.h>
+#ifdef _lint
+ #ifdef ____ATTR_PURE__
+   #undef __ATTR_PURE__
+ #endif
+ #ifdef __attribute__
+   #undef __attribute__
+ #endif
+ #define __ATTR_PURE__
+ #define __attribute__(var)
+#endif
+#include <avr/interrupt.h>
 #include <stdint.h>
-#include <string.h>
 #include <avr/pgmspace.h>
 #include "board.h"
 

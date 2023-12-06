@@ -13,7 +13,16 @@
 ------------------------------------------------------------------------------
 */
 #include "serial.h"
-#include <string.h>
+#ifdef _lint
+ #ifdef ____ATTR_PURE__
+   #undef __ATTR_PURE__
+ #endif
+ #ifdef __attribute__
+   #undef __attribute__
+ #endif
+ #define __ATTR_PURE__
+ #define __attribute__(var)
+#endif
 #include <avr/pgmspace.h>
 
 typedef char PROGMEM prog_char;

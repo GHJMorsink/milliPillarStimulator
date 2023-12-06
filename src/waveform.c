@@ -13,6 +13,16 @@
 ------------------------------------------------------------------------------
 */
 #include <stdint.h>
+#ifdef _lint
+ #ifdef ____ATTR_PURE__
+   #undef __ATTR_PURE__
+ #endif
+ #ifdef __attribute__
+   #undef __attribute__
+ #endif
+ #define __ATTR_PURE__
+ #define __attribute__(var)
+#endif
 #include <avr/pgmspace.h>
 #include <avr/eeprom.h>
 #include "waveform.h"

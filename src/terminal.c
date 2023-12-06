@@ -16,6 +16,16 @@
 
 /***------------------------- Includes ----------------------------------***/
 #include <avr/io.h>
+#ifdef _lint
+ #ifdef ____ATTR_PURE__
+   #undef __ATTR_PURE__
+ #endif
+ #ifdef __attribute__
+   #undef __attribute__
+ #endif
+ #define __ATTR_PURE__
+ #define __attribute__(var)
+#endif
 #include <avr/pgmspace.h>
 #include <avr/eeprom.h>
 #include <avr/wdt.h>
@@ -25,7 +35,6 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <stdio.h>
 
 #include "board.h"
 #include "log.h"
@@ -104,17 +113,15 @@ static const struct sAccess
  --------------------------------------------------*/
 uint8_t read_uint(char *line, uint8_t *char_counter, uint16_t *variable_ptr)
 {
-    char *ptr = line + *char_counter;
-    unsigned char c;
-
-    // Extract number into fast integer.
-    uint16_t intval = 0;
-    uint8_t ndigit = 0;
+    char       *ptr = line + *char_counter;
+    uint8_t    c;
+    uint16_t   intval = 0;
+    uint8_t    ndigit = 0;
 
     while(1)
     {
          /* Grab first character and increment pointer. No spaces assumed in line. */
-        c = *ptr++;
+        c = (uint8_t) *ptr++;
         c -= '0';
         if (c <= 9)
         {
@@ -142,11 +149,9 @@ Wait for room in serial output buffer
  --------------------------------------------------*/
 static void waitPrint(void)
 {
-   volatile uint8_t count;
-
    while ( uSerialGetFree() < MAXSENDLENGTH )
    {
-      count++;
+      ;
    }
 }
 
@@ -227,7 +232,7 @@ static void f_he( char *argv )
    for ( iCount = 0; iCount < iAccArrSize; iCount++ )
    {                                   /* write all strings */
        vWriteString( asAccessArr[ iCount ].szHelpText,
-                     strlen( asAccessArr[ iCount ].szHelpText ) );
+                     (uint8_t) strlen( asAccessArr[ iCount ].szHelpText ) );
        vSendCR();
    }
 }
@@ -410,8 +415,8 @@ static void f_sv( char *argv )
    }
    /* Set the resulting parameters */
    iChannel -= 1;
-   sSetChannel[iChannel].uVoltages[0] = uVolts[0];
-   sSetChannel[iChannel].uVoltages[1] = uVolts[1];
+   sSetChannel[iChannel].uVoltages[0] = (uint8_t) uVolts[0];
+   sSetChannel[iChannel].uVoltages[1] = (uint8_t) uVolts[1];
 }
 
 /*--------------------------------------------------
