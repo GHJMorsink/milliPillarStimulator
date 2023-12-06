@@ -165,7 +165,7 @@ void vDoWaveform( void )
             vSerialPutChar( 'A'+i );   /* show pulse on channel */
             // vDebugHex(PSTR("\r\nPulse "),(uint8_t *) &temp, 2);
             setVoltage(i, sSetChannel[i].uVoltages[0]);  /* set positive output voltage */
-            setHBridge(i, POSITIVE);  /* start the pulse */
+            setHBridgePositive(i);  /* start the pulse */
             delay_100us(sSetChannel[i].uTimes[1]);
             clearHBridge(i);         /* no output */
             if ( sSetChannel[i].uTimes[2] > 0)
@@ -175,7 +175,7 @@ void vDoWaveform( void )
             setVoltage(i, sSetChannel[i].uVoltages[1]);  /* set negative output voltage */
             if ( sSetChannel[i].uTimes[3] > 0)
             {
-               setHBridge(i, NEGATIVE);  /* start the pulse */
+               setHBridgeNegative(i);  /* start the pulse */
                delay_100us(sSetChannel[i].uTimes[3]);
                clearHBridge(i);         /* no output */
             }

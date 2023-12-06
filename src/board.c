@@ -132,7 +132,7 @@ void vInitBoard(void)
    cli();                               /* no interrupts anymore */
    /* init ports */
    DDRD  = 0xFC;  //0b11111100;        /* Set the port to correct configuration (pd2..pd7 output) */
-   PORTD = 0;                          /* None of the H-Bridges enabled */
+   PORTD = 0xA8;                       /* None of the H-Bridges enabled */
    DDRB  = 0x2F;  //0b00101111;        /* Set the port to correct configuration (pb0/1=outp, PB2=CS, PB3=MOSI, PB4=MISO, PB5=CLK */
    PORTB = 0xFC;  //0b11111100;
    DDRC  = 0x20;  //0b00100000;         /* PC5 is led */
@@ -166,52 +166,52 @@ Set H-Bridge function for a channel
  This will enable the channel in either pos or neg side
  channel: 0 for A and 1 B, 2 for C and 3 D
  --------------------------------------------------*/
-void setHBridge(uint8_t channel, uint8_t side)
+void setHBridgePositive(uint8_t channel)
 {
-   if ( side == POSITIVE )
+   switch ( channel )
    {
-      switch ( channel )
-      {
-         case 0 :
-            ResetPD(A_Direction);
-            SetPD(A_Enable);
-            break;
-         case 1 :
-            ResetPB(B_Direction);
-            SetPB(B_Enable);
-            break;
-         case 2 :
-            ResetPD(C_Direction);
-            SetPD(C_Enable);
-            break;
-         case 3 :
-         default:
-            ResetPD(D_Direction);
-            SetPD(D_Enable);
-            break;
-      }
-   } else
+      case 0 :
+         ResetPD(A_Direction);
+         SetPD(A_Enable);
+         break;
+      case 1 :
+         ResetPB(B_Direction);
+         SetPB(B_Enable);
+         break;
+      case 2 :
+         ResetPD(C_Direction);
+         SetPD(C_Enable);
+         break;
+      case 3 :
+         ResetPD(D_Direction);
+         SetPD(D_Enable);
+         break;
+      default:
+         break;
+   }
+}
+void setHBridgeNegative(uint8_t channel)
+{
+   switch ( channel )
    {
-      switch ( channel )
-      {
-         case 0 :
-            SetPD(A_Direction);
-            SetPD(A_Enable);
-            break;
-         case 1 :
-            SetPB(B_Direction);
-            SetPB(B_Enable);
-            break;
-         case 2 :
-            SetPD(C_Direction);
-            SetPD(C_Enable);
-            break;
-         case 3 :
-         default:
-            SetPD(D_Direction);
-            SetPD(D_Enable);
-            break;
-      }
+      case 0 :
+         SetPD(A_Direction);
+         SetPD(A_Enable);
+         break;
+      case 1 :
+         SetPB(B_Direction);
+         SetPB(B_Enable);
+         break;
+      case 2 :
+         SetPD(C_Direction);
+         SetPD(C_Enable);
+         break;
+      case 3 :
+         SetPD(D_Direction);
+         SetPD(D_Enable);
+         break;
+      default:
+         break;
    }
 }
 
@@ -225,8 +225,8 @@ void clearHBridge(uint8_t channel)
       case 0 :  ResetPD(A_Enable); break;
       case 1 :  ResetPB(B_Enable); break;
       case 2 :  ResetPD(C_Enable); break;
-      case 3 :
-      default:  ResetPD(D_Enable); break;
+      case 3 :  ResetPD(D_Enable); break;
+      default:  break;
    }
 }
 
